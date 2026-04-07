@@ -5,14 +5,10 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
-import { ChatAiService } from '../chat-ai.service';
-import { HttpClientModule } from '@angular/common/http';
 import { NzTagModule } from 'ng-zorro-antd/tag';
-
-interface Message {
-  role: 'user' | 'ai';
-  text: string;
-}
+import { HttpClientModule } from '@angular/common/http';
+import { ChatAiService } from '../chat-ai.service';
+import { ChatMessage, UiMessage } from '../models/chat.model';
 
 @Component({
   selector: 'app-chat',
@@ -31,22 +27,25 @@ interface Message {
   styleUrls: ['./chat.component.css']
 })
 export class ChatComponent {
-  messages: Message[] = [];
+  messages: UiMessage[] = [];
+  history: ChatMessage[] = [];
   question = '';
   loading = false;
 
   constructor(private chatAi: ChatAiService) {}
 
-  send() {
+  send(): void {
     if (!this.question.trim()) return;
     const q = this.question;
     this.messages.push({ role: 'user', text: q });
     this.question = '';
     this.loading = true;
 
-    this.chatAi.sendQuestion(q).subscribe({
-      next: (res) => {
-        this.messages.push({ role: 'ai', text: res.answer });
+    this.chatAi.sendMessage(q, [...this.history]).subscribe({
+      next: (answer) => {
+        this.history.push({ role: 'user', content: q });
+        this.history.push({ role: 'assistant', content: answer });
+        this.messages.push({ role: 'ai', text: answer });
         this.loading = false;
       },
       error: () => {
